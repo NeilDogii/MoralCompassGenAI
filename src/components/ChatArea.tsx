@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  //   FetchAiResponse,
-  FetchAiResponseTest,
+  FetchAiResponse,
+  // FetchAiResponseTest,
 } from "@/lib/requests/FetchAiResponse";
 import { Send } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export default function ChatArea() {
   const [msgHistory, setMsgHistory] = useState<
@@ -13,25 +13,34 @@ export default function ChatArea() {
   >([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (loading && input.trim() != "") {
       setMsgHistory((prev) => [...prev, { author: "user", message: input }]);
       //   FetchAiResponseTest().then((res) => {
-      FetchAiResponseTest().then((res) => {
-        setMsgHistory((prev) => [
-          ...prev,
-          {
-            author: "ai",
-            message: `The Proved Prompt is *${res.prediction}* Because of the following reason(s)\n Panda reason add kor plij`,
-          },
-        ]);
-        setInput("");
-        setLoading(false);
+      FetchAiResponse(input).then((res) => {
+        if (res) {
+          setMsgHistory((prev) => [
+            ...prev,
+            {
+              author: "ai",
+              message: `The Proved Prompt is *${res.label}*`,
+            },
+          ]);
+        }
       });
+      setInput("");
+      setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [msgHistory]);
   return (
     <>
       <div className="h-full overflow-auto">
@@ -53,6 +62,7 @@ export default function ChatArea() {
               <p className="text-sm text-gray-500">Thinking...</p>
             </div>
           )}
+          <div ref={chatEndRef} />
         </div>
       </div>
       <div className="mt-auto min-h-14 p-4 mb-2 flex gap-2 items-center">
@@ -60,6 +70,12 @@ export default function ChatArea() {
           className="bg-background-secondary/90 w-full rounded-md px-2 py-3 text-sm"
           placeholder="Type your prompt here..."
           value={input}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              setLoading(true);
+            }
+          }}
           onChange={(e) => setInput(e.target.value)}
         />
         <button

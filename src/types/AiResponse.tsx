@@ -1,4 +1,6 @@
 export type AiResponse = {
-  prediction: "ethical" | "unethical";
+  label: "ethical" | "unethical";
   reason?: string;
+  ethics_score?: number;
+  probability_ethical?: number;
 };

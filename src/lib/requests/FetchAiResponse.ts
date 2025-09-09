@@ -1,13 +1,14 @@
 "use server";
 
 import { AiResponse } from "@/types/AiResponse";
+import { API_PREDICTION_URL } from "../constants/URL";
 
 export async function FetchAiResponseTest(): Promise<AiResponse> {
   // Simulate a delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return {
-    prediction: "ethical",
+    label: "ethical",
     reason: "Simulated for testing purposes.",
   };
 }
@@ -16,7 +17,7 @@ export async function FetchAiResponse(
   prompt: string
 ): Promise<AiResponse | null> {
   try {
-    const response = await fetch("http://localhost:8000/predict", {
+    const response = await fetch(API_PREDICTION_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
