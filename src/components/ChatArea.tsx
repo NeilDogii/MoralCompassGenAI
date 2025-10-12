@@ -25,7 +25,7 @@ export default function ChatArea() {
             ...prev,
             {
               author: "ai",
-              message: `The Proved Prompt is *${res.label}*`,
+              message: `The Ethical Stats for the given prompt is as follows: \n Type: ${res.label} Ethical Score: ${res.ethics_score} Probability Score: ${res.probability_ethical} `,
             },
           ]);
         }
@@ -48,11 +48,10 @@ export default function ChatArea() {
           {msgHistory.map((msg, index) => (
             <div
               key={index}
-              className={`${
-                msg.author === "ai"
+              className={`${msg.author === "ai"
                   ? "self-start bg-background-secondary/90"
                   : "self-end bg-primary/90 text-white"
-              } max-w-[70%]  p-3 rounded-lg`}
+                } max-w-[70%]  p-3 rounded-lg`}
             >
               <p className="text-sm">{msg.message}</p>
             </div>
