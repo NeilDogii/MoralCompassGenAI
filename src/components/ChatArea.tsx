@@ -4,44 +4,74 @@ import {
   FetchAiResponse,
   // FetchAiResponseTest,
 } from "@/lib/requests/FetchAiResponse";
-import { Send } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { generateAiActions } from "@/lib/requests/generateActions";
+import React, { useEffect, useState, useRef } from "react";
 
-export default function ChatArea() {
+export default function ChatArea({
+  situation,
+  action,
+  loading,
+  setLoading,
+  setSituation,
+  setAction,
+}: {
+  situation: string;
+  action: string[];
+  loading: boolean;
+  setLoading: (l: boolean) => void;
+  setSituation: (s: string) => void;
+  setAction: React.Dispatch<React.SetStateAction<string[]>>;
+}) {
   const [msgHistory, setMsgHistory] = useState<
     { author: "ai" | "user"; message: string }[]
   >([]);
-  const [situation, setSituation] = useState("");
-  const [action, setAction] = useState("");
-  const [loading, setLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!situation.trim()) return;
-    if (action.trim() == "") return;
+    if (situation.trim() != "" && action.length === 0) {
+      alert("Please add at least one action & 1 situation before submitting.");
+      return;
+    }
     if (loading && situation.trim() != "") {
-      setMsgHistory((prev) => [
-        ...prev,
-        {
-          author: "user",
-          message: `Situation: ${situation}\nAction: ${action}`,
-        },
-      ]);
-      //   FetchAiResponseTest().then((res) => {
-      FetchAiResponse(situation, action).then((res) => {
-        if (res) {
-          setMsgHistory((prev) => [
-            ...prev,
-            {
+      let actions = action;
+      const processActions = async () => {
+        const messages: {
+          author: "user" | "ai";
+          message: string;
+        }[] = [];
+        for (const act of actions) {
+          if (act.trim() === "") continue;
+          messages.push({
+            author: "user",
+            message: `Situation: ${situation}\nAction: ${act}`,
+          });
+          const res = await FetchAiResponse(situation, act);
+          if (res) {
+            messages.push({
               author: "ai",
               message: `Layer 1: ${res.layer1}\nLayer 2: ${res.layer2}`,
-            },
-          ]);
+            });
+          }
         }
+        setMsgHistory((prev) => [...prev, ...messages]);
+      };
+
+      (async () => {
+        const response = await generateAiActions({
+          actions: action,
+          situation,
+        });
+        if (response.length > 0) {
+          // setAction((prev) => [...prev, ...response]);
+          actions = [...actions, ...response];
+        }
+      })().then(() => {
+        processActions().then(() => {
+          setSituation("");
+          setAction([""]);
+          setLoading(false);
+        });
       });
-      setSituation("");
-      setAction("");
-      setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
@@ -79,7 +109,7 @@ export default function ChatArea() {
           <div ref={chatEndRef} />
         </div>
       </div>
-      <div className="mt-auto min-h-14 p-4 mb-2 flex gap-2 items-center">
+      {/* <div className="mt-auto min-h-14 p-4 mb-2 flex gap-2 items-center">
         <div className="flex flex-col w-full">
           <input
             className="bg-background-secondary/90 mb-2 w-full rounded-md px-2 py-3 text-sm"
@@ -113,7 +143,7 @@ export default function ChatArea() {
         >
           <Send />
         </button>
-      </div>
+      </div> */}
     </>
   );
 }
