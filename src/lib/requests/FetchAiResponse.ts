@@ -8,13 +8,15 @@ export async function FetchAiResponseTest(): Promise<AiResponse> {
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return {
-    label: "ethical",
-    reason: "Simulated for testing purposes.",
+    layer1: "Sample Layer 1",
+    layer2: "Sample Layer 2",
+    text: "This is a sample AI response text.",
   };
 }
 
 export async function FetchAiResponse(
-  prompt: string
+  situation: string,
+  action: string
 ): Promise<AiResponse | null> {
   try {
     const response = await fetch(API_PREDICTION_URL, {
@@ -24,7 +26,8 @@ export async function FetchAiResponse(
         // Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        text: prompt,
+        situation,
+        action,
       }),
     });
 

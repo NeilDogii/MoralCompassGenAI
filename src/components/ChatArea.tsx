@@ -11,26 +11,36 @@ export default function ChatArea() {
   const [msgHistory, setMsgHistory] = useState<
     { author: "ai" | "user"; message: string }[]
   >([]);
-  const [input, setInput] = useState("");
+  const [situation, setSituation] = useState("");
+  const [action, setAction] = useState("");
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (loading && input.trim() != "") {
-      setMsgHistory((prev) => [...prev, { author: "user", message: input }]);
+    if (!situation.trim()) return;
+    if (action.trim() == "") return;
+    if (loading && situation.trim() != "") {
+      setMsgHistory((prev) => [
+        ...prev,
+        {
+          author: "user",
+          message: `Situation: ${situation}\nAction: ${action}`,
+        },
+      ]);
       //   FetchAiResponseTest().then((res) => {
-      FetchAiResponse(input).then((res) => {
+      FetchAiResponse(situation, action).then((res) => {
         if (res) {
           setMsgHistory((prev) => [
             ...prev,
             {
               author: "ai",
-              message: `The Ethical Stats for the given prompt is as follows: \n Type: ${res.label} Ethical Score: ${res.ethics_score} Probability Score: ${res.probability_ethical} `,
+              message: `Layer 1: ${res.layer1}\nLayer 2: ${res.layer2}`,
             },
           ]);
         }
       });
-      setInput("");
+      setSituation("");
+      setAction("");
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -48,12 +58,17 @@ export default function ChatArea() {
           {msgHistory.map((msg, index) => (
             <div
               key={index}
-              className={`${msg.author === "ai"
+              className={`${
+                msg.author === "ai"
                   ? "self-start bg-background-secondary/90"
                   : "self-end bg-primary/90 text-white"
-                } max-w-[70%]  p-3 rounded-lg`}
+              } max-w-[70%]  p-3 rounded-lg`}
             >
-              <p className="text-sm">{msg.message}</p>
+              {msg.message.split("\n").map((line, i) => (
+                <p key={i} className="text-sm">
+                  {line}
+                </p>
+              ))}
             </div>
           ))}
           {loading && (
@@ -65,18 +80,32 @@ export default function ChatArea() {
         </div>
       </div>
       <div className="mt-auto min-h-14 p-4 mb-2 flex gap-2 items-center">
-        <input
-          className="bg-background-secondary/90 w-full rounded-md px-2 py-3 text-sm"
-          placeholder="Type your prompt here..."
-          value={input}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              setLoading(true);
-            }
-          }}
-          onChange={(e) => setInput(e.target.value)}
-        />
+        <div className="flex flex-col w-full">
+          <input
+            className="bg-background-secondary/90 mb-2 w-full rounded-md px-2 py-3 text-sm"
+            placeholder="Type your situation here..."
+            value={situation}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                setLoading(true);
+              }
+            }}
+            onChange={(e) => setSituation(e.target.value)}
+          />
+          <input
+            className="bg-background-secondary/90 w-full rounded-md px-2 py-3 text-sm"
+            placeholder="Type your Action here..."
+            value={action}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                setLoading(true);
+              }
+            }}
+            onChange={(e) => setAction(e.target.value)}
+          />
+        </div>
         <button
           className="bg-primary p-2.5 cursor-pointer rounded-md hover:bg-primary/90 transition"
           onClick={() => setLoading(true)}
