@@ -1,5 +1,17 @@
 export type AiResponse = {
-  layer1: string;
-  layer2: string;
-  text: string;
+  input_text: string;
+  layer1_ethics: {
+    label: string;
+    scores: {
+      ethical: number;
+      unethical: number;
+    };
+  };
+  layer2_emotions: Array<{
+    emotion: string;
+    score: number;
+  }>;
+  layer3_score: {
+    score: number;
+  };
 };

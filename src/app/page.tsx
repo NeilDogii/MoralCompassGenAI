@@ -1,5 +1,5 @@
-import Wrapper from "@/components/Wrapper";
+import Main from "@/components/Main";
 
 export default function page() {
-  return <Wrapper />;
+  return <Main />;
 }

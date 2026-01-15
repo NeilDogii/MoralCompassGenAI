@@ -8,9 +8,22 @@ export async function FetchAiResponseTest(): Promise<AiResponse> {
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return {
-    layer1: "Sample Layer 1",
-    layer2: "Sample Layer 2",
-    text: "This is a sample AI response text.",
+    input_text: "Situation: Sample situation. Action: Sample action.",
+    layer1_ethics: {
+      label: "Ethical",
+      scores: {
+        ethical: 85.5,
+        unethical: 14.5,
+      },
+    },
+    layer2_emotions: [
+      { emotion: "neutral", score: 75.5 },
+      { emotion: "curiosity", score: 15.2 },
+      { emotion: "surprise", score: 9.3 },
+    ],
+    layer3_score: {
+      score: 72.3,
+    },
   };
 }
 
