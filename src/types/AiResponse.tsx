@@ -11,7 +11,7 @@ export type AiResponse = {
     emotion: string;
     score: number;
   }>;
-  layer3_score: {
-    score: number;
+  layer3_policing: {
+    policing_index: number;
   };
 };

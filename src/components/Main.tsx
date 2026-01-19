@@ -52,29 +52,27 @@ export default function Main() {
     setBestAction(null);
 
     try {
-      // Fetch responses for all actions in parallel
       const responses = await Promise.all(
         actions
           .filter((a) => a.trim())
           .map(async (action) => {
             const response = await FetchAiResponse(situation, action);
             return { action, response };
-          })
+          }),
       );
 
-      // Filter out null responses
       const validResults = responses.filter(
-        (r): r is ActionResult => r.response !== null
+        (r): r is ActionResult => r.response !== null,
       );
 
       if (validResults.length > 0) {
         setResults(validResults);
 
-        // Find the best action based on layer3_score
         const best = validResults.reduce((prev, current) =>
-          current.response.layer3_score.score > prev.response.layer3_score.score
+          current.response.layer3_policing.policing_index >
+          prev.response.layer3_policing.policing_index
             ? current
-            : prev
+            : prev,
         );
         setBestAction(best);
       }
@@ -239,7 +237,7 @@ export default function Main() {
                             <span className="text-slate-400 text-sm">
                               (
                               {bestAction.response.layer1_ethics.scores.ethical.toFixed(
-                                1
+                                1,
                               )}
                               %)
                             </span>
@@ -251,7 +249,14 @@ export default function Main() {
                             Morality Score
                           </div>
                           <div className="text-2xl font-bold text-cyan-400">
-                            {bestAction.response.layer3_score.score.toFixed(1)}%
+                            {bestAction &&
+                            bestAction.response.layer3_policing &&
+                            bestAction.response.layer3_policing.policing_index
+                              ? bestAction.response.layer3_policing.policing_index.toFixed(
+                                  1,
+                                )
+                              : "N/A"}
+                            %
                           </div>
                         </div>
 
@@ -260,8 +265,12 @@ export default function Main() {
                             Primary Emotion
                           </div>
                           <div className="text-lg font-semibold text-purple-400 capitalize">
-                            {bestAction.response.layer2_emotions[0]?.emotion ||
-                              "N/A"}
+                            {bestAction &&
+                            bestAction.response.layer2_emotions &&
+                            bestAction.response.layer2_emotions[0] &&
+                            bestAction.response.layer2_emotions[0].emotion
+                              ? bestAction.response.layer2_emotions[0].emotion
+                              : "N/A"}
                           </div>
                         </div>
                       </div>
@@ -316,7 +325,7 @@ export default function Main() {
                             </span>
                             <span className="text-sm font-bold text-emerald-400">
                               {result.response.layer1_ethics.scores.ethical.toFixed(
-                                1
+                                1,
                               )}
                               %
                             </span>
@@ -339,7 +348,7 @@ export default function Main() {
                             </span>
                             <span className="text-sm font-bold text-red-400">
                               {result.response.layer1_ethics.scores.unethical.toFixed(
-                                1
+                                1,
                               )}
                               %
                             </span>
@@ -370,7 +379,7 @@ export default function Main() {
                             <div
                               key={i}
                               className={`px-4 py-2 rounded-full border ${getEmotionColor(
-                                i
+                                i,
                               )}`}
                             >
                               <span className="capitalize font-medium">
@@ -393,14 +402,17 @@ export default function Main() {
                         <div className="flex justify-between items-center mb-2">
                           <span className="text-slate-400">Score</span>
                           <span className="text-2xl font-bold text-cyan-400">
-                            {result.response.layer3_score.score.toFixed(1)}%
+                            {result.response.layer3_policing.policing_index.toFixed(
+                              1,
+                            )}
+                            %
                           </span>
                         </div>
                         <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{
-                              width: `${result.response.layer3_score.score}%`,
+                              width: `${result.response.layer3_policing.policing_index}%`,
                             }}
                             transition={{ duration: 1, delay: 0.3 }}
                             className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500"
@@ -472,7 +484,7 @@ export default function Main() {
                           </TableCell>
                           <TableCell className="text-slate-300">
                             {result.response.layer1_ethics.scores.ethical.toFixed(
-                              1
+                              1,
                             )}
                             %
                           </TableCell>
@@ -482,7 +494,10 @@ export default function Main() {
                           </TableCell>
                           <TableCell>
                             <span className="font-bold text-cyan-400 text-lg">
-                              {result.response.layer3_score.score.toFixed(1)}%
+                              {result.response.layer3_policing.policing_index.toFixed(
+                                1,
+                              )}
+                              %
                             </span>
                           </TableCell>
                         </TableRow>

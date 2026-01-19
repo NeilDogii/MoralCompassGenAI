@@ -4,7 +4,6 @@ import { AiResponse } from "@/types/AiResponse";
 import { API_PREDICTION_URL } from "../constants/URL";
 
 export async function FetchAiResponseTest(): Promise<AiResponse> {
-  // Simulate a delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return {
@@ -21,8 +20,8 @@ export async function FetchAiResponseTest(): Promise<AiResponse> {
       { emotion: "curiosity", score: 15.2 },
       { emotion: "surprise", score: 9.3 },
     ],
-    layer3_score: {
-      score: 72.3,
+    layer3_policing: {
+      policing_index: 72.3,
     },
   };
 }
