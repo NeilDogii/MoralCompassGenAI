@@ -1,20 +1,20 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "@/components/ui/table";
 import { motion, AnimatePresence } from "framer-motion";
 import { FetchAiResponse } from "@/lib/requests/FetchAiResponse";
 import { AiResponse } from "@/types/AiResponse";
-import { Loader2, Plus, Trash2, Sparkles, TrendingUp } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  Sparkles,
+  TrendingUp,
+  BarChart3,
+} from "lucide-react";
 
 interface ActionResult {
   action: string;
@@ -22,11 +22,15 @@ interface ActionResult {
 }
 
 export default function Main() {
+  const router = useRouter();
   const [situation, setSituation] = useState("");
   const [actions, setActions] = useState([""]);
   const [results, setResults] = useState<ActionResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [bestAction, setBestAction] = useState<ActionResult | null>(null);
+
+  // Reference policing index for comparison (baseline neutral action)
+  const REFERENCE_POLICING_INDEX = 50.0;
 
   const addAction = () => setActions([...actions, ""]);
 
@@ -68,12 +72,17 @@ export default function Main() {
       if (validResults.length > 0) {
         setResults(validResults);
 
-        const best = validResults.reduce((prev, current) =>
-          current.response.layer3_policing.policing_index >
-          prev.response.layer3_policing.policing_index
-            ? current
-            : prev,
-        );
+        // Calculate best action using combined score: 60% ethics + 40% inverted policing
+        // Note: Lower policing index is better, so we invert it (100 - policing_index)
+        const best = validResults.reduce((prev, current) => {
+          const currentCombined = 
+            current.response.layer1_ethics.scores.ethical * 0.6 +
+            (100 - current.response.layer3_policing.policing_index) * 0.4;
+          const prevCombined = 
+            prev.response.layer1_ethics.scores.ethical * 0.6 +
+            (100 - prev.response.layer3_policing.policing_index) * 0.4;
+          return currentCombined > prevCombined ? current : prev;
+        });
         setBestAction(best);
       }
     } catch (error) {
@@ -203,6 +212,25 @@ export default function Main() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
+            {/* Reference Score Info */}
+            <Card className="bg-slate-800/30 border-slate-700/50 backdrop-blur-sm">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-400">
+                      Reference Policing Index (Baseline)
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Neutral action baseline for comparison
+                    </p>
+                  </div>
+                  <div className="text-2xl font-bold text-slate-300">
+                    {REFERENCE_POLICING_INDEX.toFixed(1)}%
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Best Action Highlight */}
             {bestAction && (
               <Card className="bg-gradient-to-br from-emerald-900/30 via-emerald-800/20 to-teal-900/30 border-emerald-500/30 backdrop-blur-sm shadow-2xl shadow-emerald-500/10">
@@ -246,17 +274,32 @@ export default function Main() {
 
                         <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
                           <div className="text-sm text-slate-400 mb-1">
-                            Morality Score
+                            Policing Index
                           </div>
                           <div className="text-2xl font-bold text-cyan-400">
-                            {bestAction &&
-                            bestAction.response.layer3_policing &&
-                            bestAction.response.layer3_policing.policing_index
-                              ? bestAction.response.layer3_policing.policing_index.toFixed(
-                                  1,
-                                )
-                              : "N/A"}
+                            {bestAction.response.layer3_policing.policing_index.toFixed(
+                              1,
+                            )}
                             %
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                          <div className="text-sm text-slate-400 mb-1">
+                            Combined Score
+                          </div>
+                          <div className="text-2xl font-bold text-purple-400">
+                            {(
+                              bestAction.response.layer1_ethics.scores.ethical *
+                                0.6 +
+                              bestAction.response.layer3_policing
+                                .policing_index *
+                                0.4
+                            ).toFixed(1)}
+                            %
+                          </div>
+                          <div className="text-xs text-slate-500 mt-1">
+                            60% Ethics + 40% Policing
                           </div>
                         </div>
 
@@ -393,14 +436,14 @@ export default function Main() {
                       </div>
                     </div>
 
-                    {/* Morality Score */}
+                    {/* Policing Index */}
                     <div className="space-y-3">
                       <h4 className="text-sm font-semibold text-slate-300">
-                        Overall Morality Score
+                        Policing Index
                       </h4>
                       <div className="bg-slate-800/50 rounded-lg p-4">
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-slate-400">Score</span>
+                          <span className="text-slate-400">Index Value</span>
                           <span className="text-2xl font-bold text-cyan-400">
                             {result.response.layer3_policing.policing_index.toFixed(
                               1,
@@ -425,85 +468,29 @@ export default function Main() {
               </motion.div>
             ))}
 
-            {/* Comparison Table */}
+            {/* View Detailed Analysis Button */}
             <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm shadow-2xl">
-              <CardContent className="pt-6">
-                <h2 className="text-2xl font-bold text-slate-100 mb-6">
-                  Comparative Analysis
-                </h2>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-slate-800 hover:bg-slate-800/50">
-                        <TableHead className="text-slate-300 font-semibold">
-                          Action
-                        </TableHead>
-                        <TableHead className="text-slate-300 font-semibold">
-                          Ethics Label
-                        </TableHead>
-                        <TableHead className="text-slate-300 font-semibold">
-                          Ethical %
-                        </TableHead>
-                        <TableHead className="text-slate-300 font-semibold">
-                          Primary Emotion
-                        </TableHead>
-                        <TableHead className="text-slate-300 font-semibold">
-                          Morality Score
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {results.map((result, i) => (
-                        <TableRow
-                          key={i}
-                          className={`border-slate-800 ${
-                            bestAction?.action === result.action
-                              ? "bg-emerald-500/10 hover:bg-emerald-500/20"
-                              : "hover:bg-slate-800/50"
-                          }`}
-                        >
-                          <TableCell className="font-medium text-slate-100">
-                            <div className="flex items-center gap-2">
-                              {result.action}
-                              {bestAction?.action === result.action && (
-                                <span className="text-emerald-400">★</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span
-                              className={`px-2 py-1 rounded text-xs font-semibold ${
-                                result.response.layer1_ethics.label ===
-                                "Ethical"
-                                  ? "bg-emerald-500/20 text-emerald-400"
-                                  : "bg-red-500/20 text-red-400"
-                              }`}
-                            >
-                              {result.response.layer1_ethics.label}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-slate-300">
-                            {result.response.layer1_ethics.scores.ethical.toFixed(
-                              1,
-                            )}
-                            %
-                          </TableCell>
-                          <TableCell className="text-slate-300 capitalize">
-                            {result.response.layer2_emotions[0]?.emotion ||
-                              "N/A"}
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-bold text-cyan-400 text-lg">
-                              {result.response.layer3_policing.policing_index.toFixed(
-                                1,
-                              )}
-                              %
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+              <CardContent className="pt-6 pb-6">
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-slate-100 mb-3">
+                    Ready for Detailed Comparison?
+                  </h3>
+                  <p className="text-slate-400 mb-6">
+                    View comprehensive charts, graphs, and side-by-side
+                    comparison of all actions
+                  </p>
+                  <Button
+                    onClick={() => {
+                      const data = encodeURIComponent(
+                        JSON.stringify({ results, bestAction }),
+                      );
+                      router.push(`/results?data=${data}`);
+                    }}
+                    className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold shadow-lg shadow-cyan-500/20 px-8 py-6 text-lg"
+                  >
+                    <BarChart3 className="w-5 h-5 mr-2" />
+                    View Detailed Analysis & Graphs
+                  </Button>
                 </div>
               </CardContent>
             </Card>
