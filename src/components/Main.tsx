@@ -72,18 +72,28 @@ export default function Main() {
       if (validResults.length > 0) {
         setResults(validResults);
 
-        // Calculate best action using combined score: 60% ethics + 40% inverted policing
-        // Note: Lower policing index is better, so we invert it (100 - policing_index)
-        const best = validResults.reduce((prev, current) => {
-          const currentCombined = 
-            current.response.layer1_ethics.scores.ethical * 0.6 +
-            (100 - current.response.layer3_policing.policing_index) * 0.4;
-          const prevCombined = 
-            prev.response.layer1_ethics.scores.ethical * 0.6 +
-            (100 - prev.response.layer3_policing.policing_index) * 0.4;
-          return currentCombined > prevCombined ? current : prev;
-        });
-        setBestAction(best);
+        // Check if all actions are unethical
+        const allUnethical = validResults.every(
+          (result) => result.response.layer1_ethics.label === "Unethical",
+        );
+
+        if (allUnethical) {
+          // If all actions are unethical, don't recommend any
+          setBestAction(null);
+        } else {
+          // Calculate best action using combined score: 60% ethics + 40% inverted policing
+          // Note: Lower policing index is better, so we invert it (100 - policing_index)
+          const best = validResults.reduce((prev, current) => {
+            const currentCombined =
+              current.response.layer1_ethics.scores.ethical * 0.6 +
+              (100 - current.response.layer3_policing.policing_index) * 0.4;
+            const prevCombined =
+              prev.response.layer1_ethics.scores.ethical * 0.6 +
+              (100 - prev.response.layer3_policing.policing_index) * 0.4;
+            return currentCombined > prevCombined ? current : prev;
+          });
+          setBestAction(best);
+        }
       }
     } catch (error) {
       console.error("Error analyzing actions:", error);
@@ -231,8 +241,8 @@ export default function Main() {
               </CardContent>
             </Card>
 
-            {/* Best Action Highlight */}
-            {bestAction && (
+            {/* Best Action Highlight or Warning */}
+            {bestAction ? (
               <Card className="bg-gradient-to-br from-emerald-900/30 via-emerald-800/20 to-teal-900/30 border-emerald-500/30 backdrop-blur-sm shadow-2xl shadow-emerald-500/10">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
@@ -305,7 +315,7 @@ export default function Main() {
 
                         <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
                           <div className="text-sm text-slate-400 mb-1">
-                            Primary Emotion
+                            Primary Aesthetic
                           </div>
                           <div className="text-lg font-semibold text-purple-400 capitalize">
                             {bestAction &&
@@ -317,6 +327,44 @@ export default function Main() {
                           </div>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-gradient-to-br from-red-900/30 via-red-800/20 to-orange-900/30 border-red-500/30 backdrop-blur-sm shadow-2xl shadow-red-500/10">
+                <CardContent className="">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-red-500/20 rounded-full">
+                      <svg
+                        className="w-6 h-6 text-red-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-red-300 mb-2">
+                        No Recommended Action
+                      </h3>
+                      <p className="text-slate-300 mb-4">
+                        All analyzed actions have been classified as{" "}
+                        <span className="font-semibold text-red-400">
+                          unethical
+                        </span>
+                        . We cannot recommend any of these courses of action.
+                      </p>
+                      <p className="text-sm text-slate-400">
+                        Consider exploring alternative approaches or reframing
+                        the situation to find more ethical solutions.
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -410,10 +458,10 @@ export default function Main() {
                       </div>
                     </div>
 
-                    {/* Emotions */}
+                    {/* Aesthetic */}
                     <div className="space-y-3">
                       <h4 className="text-sm font-semibold text-slate-300">
-                        Emotional Analysis
+                        Aesthetic Analysis
                       </h4>
                       <div className="flex flex-wrap gap-2">
                         {result.response.layer2_emotions
