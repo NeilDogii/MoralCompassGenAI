@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,10 @@ import {
   Sparkles,
   TrendingUp,
   BarChart3,
+  LogOut,
 } from "lucide-react";
+import { getCookie, deleteCookie } from "@/lib/utils/cookies";
+import { AUTH_TOKEN_COOKIE } from "@/lib/constants/Cookie";
 
 interface ActionResult {
   action: string;
@@ -23,14 +26,59 @@ interface ActionResult {
 
 export default function Main() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [situation, setSituation] = useState("");
   const [actions, setActions] = useState([""]);
   const [results, setResults] = useState<ActionResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [bestAction, setBestAction] = useState<ActionResult | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   // Reference policing index for comparison (baseline neutral action)
   const REFERENCE_POLICING_INDEX = 50.0;
+
+  // Check authentication and restore state from URL params
+  useEffect(() => {
+    const token = getCookie(AUTH_TOKEN_COOKIE);
+    if (!token) {
+      router.push("/auth");
+      return;
+    }
+    setIsAuthenticated(true);
+    setCheckingAuth(false);
+
+    // Restore state from URL params if coming back from results page
+    const data = searchParams.get("data");
+    if (data) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(data));
+        if (parsed.situation) setSituation(parsed.situation);
+        if (parsed.actions) setActions(parsed.actions);
+        if (parsed.results) setResults(parsed.results);
+        if (parsed.bestAction) setBestAction(parsed.bestAction);
+      } catch (error) {
+        console.error("Error parsing state data:", error);
+      }
+    }
+  }, [router, searchParams]);
+
+  const handleLogout = () => {
+    deleteCookie(AUTH_TOKEN_COOKIE);
+    router.push("/auth");
+  };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const addAction = () => setActions([...actions, ""]);
 
@@ -56,11 +104,18 @@ export default function Main() {
     setBestAction(null);
 
     try {
+      // Get auth token from cookie
+      const token = getCookie(AUTH_TOKEN_COOKIE);
+
       const responses = await Promise.all(
         actions
           .filter((a) => a.trim())
           .map(async (action) => {
-            const response = await FetchAiResponse(situation, action);
+            const response = await FetchAiResponse(
+              situation,
+              action,
+              token || undefined,
+            );
             return { action, response };
           }),
       );
@@ -128,6 +183,16 @@ export default function Main() {
           <p className="text-slate-400 text-lg">
             Analyze ethical decisions with advanced AI-powered insights
           </p>
+          <div className="mt-4">
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-200"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </motion.div>
 
         {/* Input Section */}
@@ -256,7 +321,7 @@ export default function Main() {
                       <p className="text-lg text-slate-100 font-medium mb-4">
                         {bestAction.action}
                       </p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
                           <div className="text-sm text-slate-400 mb-1">
                             Ethics Classification
@@ -292,6 +357,9 @@ export default function Main() {
                             )}
                             %
                           </div>
+                          <div className="text-xs text-slate-500 mt-1">
+                            Lower is better
+                          </div>
                         </div>
 
                         <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
@@ -302,14 +370,15 @@ export default function Main() {
                             {(
                               bestAction.response.layer1_ethics.scores.ethical *
                                 0.6 +
-                              bestAction.response.layer3_policing
-                                .policing_index *
+                              (100 -
+                                bestAction.response.layer3_policing
+                                  .policing_index) *
                                 0.4
                             ).toFixed(1)}
                             %
                           </div>
                           <div className="text-xs text-slate-500 mt-1">
-                            60% Ethics + 40% Policing
+                            60% Ethics + 40% (100-Policing)
                           </div>
                         </div>
 
@@ -530,7 +599,12 @@ export default function Main() {
                   <Button
                     onClick={() => {
                       const data = encodeURIComponent(
-                        JSON.stringify({ results, bestAction }),
+                        JSON.stringify({
+                          results,
+                          bestAction,
+                          situation,
+                          actions,
+                        }),
                       );
                       router.push(`/results?data=${data}`);
                     }}

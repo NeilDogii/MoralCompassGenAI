@@ -25,7 +25,7 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { ArrowLeft, BarChart3, TrendingUp } from "lucide-react";
+import { ArrowLeft, BarChart3, TrendingUp, RefreshCw } from "lucide-react";
 
 interface ActionResult {
   action: string;
@@ -37,6 +37,8 @@ export default function ResultsPage() {
   const searchParams = useSearchParams();
   const [results, setResults] = useState<ActionResult[]>([]);
   const [bestAction, setBestAction] = useState<ActionResult | null>(null);
+  const [situation, setSituation] = useState("");
+  const [actions, setActions] = useState<string[]>([]);
 
   useEffect(() => {
     const data = searchParams.get("data");
@@ -45,6 +47,8 @@ export default function ResultsPage() {
         const parsed = JSON.parse(decodeURIComponent(data));
         setResults(parsed.results);
         setBestAction(parsed.bestAction);
+        if (parsed.situation) setSituation(parsed.situation);
+        if (parsed.actions) setActions(parsed.actions);
       } catch (error) {
         console.error("Error parsing results:", error);
       }
@@ -101,14 +105,29 @@ export default function ResultsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <Button
-            onClick={() => router.push("/")}
-            variant="outline"
-            className="mb-6 border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-200"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Analysis
-          </Button>
+          <div className="flex gap-3 mb-6">
+            <Button
+              onClick={() => {
+                const data = encodeURIComponent(
+                  JSON.stringify({ results, bestAction, situation, actions }),
+                );
+                router.push(`/?data=${data}`);
+              }}
+              variant="outline"
+              className="border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-200"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Analysis
+            </Button>
+
+            <Button
+              onClick={() => router.push("/")}
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-lg shadow-emerald-500/20"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              New Analysis
+            </Button>
+          </div>
 
           <div className="flex items-center gap-3 mb-4">
             <BarChart3 className="w-10 h-10 text-emerald-400" />

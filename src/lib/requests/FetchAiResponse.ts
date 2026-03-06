@@ -28,14 +28,15 @@ export async function FetchAiResponseTest(): Promise<AiResponse> {
 
 export async function FetchAiResponse(
   situation: string,
-  action: string
+  action: string,
+  token?: string,
 ): Promise<AiResponse | null> {
   try {
     const response = await fetch(API_PREDICTION_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // Authorization: `Bearer ${apiKey}`,
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
       body: JSON.stringify({
         situation,
